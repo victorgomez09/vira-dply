@@ -14,7 +14,7 @@ import (
 )
 
 type GormOutbox struct {
-	ID          uint `gorm:"primaryKey"`
+	ID          uint `gorm:"primaryKey;autoIncrement"`
 	AggregateID string
 	EventType   string
 	Payload     []byte `gorm:"type:jsonb"`
@@ -25,7 +25,7 @@ type GormOutbox struct {
 func (GormOutbox) TableName() string { return "outbox" }
 
 type GormEvent struct {
-	ID            uint   `gorm:"primaryKey"`
+	ID            uint   `gorm:"primaryKey;autoIncrement"`
 	AggregateID   string `gorm:"index:idx_aggregate_version,unique"`
 	AggregateType string
 	Version       int `gorm:"index:idx_aggregate_version,unique"` // Único para Concurrencia Optimista
@@ -42,20 +42,19 @@ type GormEventStore struct {
 
 func NewGormEventStore(db *gorm.DB) domain.EventStore {
 	db.AutoMigrate(&GormEvent{}) // Migración al inicio
+	db.AutoMigrate(&GormOutbox{})
 
 	return &GormEventStore{db: db}
 }
 
 func (s *GormEventStore) Save(aggregate domain.AggregateRoot) error {
-	s.db.AutoMigrate(&GormOutbox{})
 
 	return s.db.Transaction(func(tx *gorm.DB) error {
 
-		currentVersion := aggregate.GetVersion()
 		newEvents := aggregate.GetUncommittedChanges()
 
 		for i, event := range newEvents {
-			eventVersion := currentVersion + i + 1
+			eventVersion := aggregate.GetVersion() - len(newEvents) + i + 1
 			payload, err := json.Marshal(event)
 			if err != nil {
 				return err
@@ -68,11 +67,6 @@ func (s *GormEventStore) Save(aggregate domain.AggregateRoot) error {
 				EventType:     event.GetType(),
 				Payload:       payload,
 				Timestamp:     event.GetTimestamp(),
-			}
-
-			// GORM gestiona el error de UNIQUE (concurrencia)
-			if result := tx.Create(&gormEvent); result.Error != nil {
-				return errors.New("optimistic lock failed: version mismatch")
 			}
 
 			// --- 1. Persistencia del Evento de Dominio (Event Sourcing) ---
