@@ -2,55 +2,78 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v4"
-	"github.com/victorgomez09/vira-dply/pkg/application/commands"
-	"github.com/victorgomez09/vira-dply/pkg/application/queries"
-	"github.com/victorgomez09/vira-dply/pkg/infrastructure/api"
-	eventpublisher "github.com/victorgomez09/vira-dply/pkg/infrastructure/event_publisher"
-	eventstore "github.com/victorgomez09/vira-dply/pkg/infrastructure/event_store"
-	"github.com/victorgomez09/vira-dply/pkg/infrastructure/repository"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/nats-io/nats.go"
+	"github.com/victorgomez09/vira-dply/internal/application"
+	"github.com/victorgomez09/vira-dply/internal/domain/order"
+	"github.com/victorgomez09/vira-dply/internal/infrastructure/projection"
+	"github.com/victorgomez09/vira-dply/internal/infrastructure/readmodel"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func main() {
+	// Cargar variables de entorno
 	if err := godotenv.Load(); err != nil {
-		log.Println("Advertencia: No se encontró archivo .env. Asumiendo variables de entorno ya configuradas.")
+		log.Println(".env file not found, using environment variables")
 	}
-	// --- 1. Inicializar Infraestructura (Conexiones) ---
-	pgURL := os.Getenv("POSTGRES_URL")
-	db, err := gorm.Open(postgres.Open(pgURL), &gorm.Config{})
+
+	// Conectar base de datos de lectura
+	readDB := setupReadDB()
+	readRepo := readmodel.NewReadModelRepo(readDB)
+	retryStore := projection.NewRetryStore(readDB)
+
+	// Conectar a NATS
+	nc, err := nats.Connect(os.Getenv("NATS_URL"))
 	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL (Event Store): %v", err)
+		log.Fatal("Failed to connect to NATS:", err)
 	}
-	eventStore := eventstore.NewGormEventStore(db)
+	defer nc.Close()
 
-	kafkaBroker := os.Getenv("KAFKA_BROKER")
-	eventPublisher := eventpublisher.NewKafkaPublisher(kafkaBroker)
+	// Crear handler
+	handler := application.NewProjectionHandler(readRepo, retryStore, nc)
 
-	mongoURL := os.Getenv("MONGO_URL")
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURL))
+	// Suscribirse a eventos
+	_, err = nc.Subscribe("events.>", func(msg *nats.Msg) {
+		var evtMap map[string]interface{}
+		if err := json.Unmarshal(msg.Data, &evtMap); err != nil {
+			log.Println("Failed to unmarshal event:", err)
+			return
+		}
+
+		var evt interface{}
+		switch evtMap["EventType"] {
+		case "OrderCreatedEvent":
+			evt = order.OrderCreatedEvent{OrderID: evtMap["OrderID"].(string)}
+		case "OrderPaidEvent":
+			evt = order.OrderPaidEvent{OrderID: evtMap["OrderID"].(string)}
+		default:
+			log.Println("Unknown event type:", evtMap["EventType"])
+			return
+		}
+
+		if err := handler.ProcessEvent(context.Background(), evt); err != nil {
+			log.Println("Failed to process event:", err)
+			handler.HandleFailedEvent(evt, err, 0)
+		}
+	})
 	if err != nil {
-		log.Fatalf("Failed to connect to MongoDB (Read Model): %v", err)
+		log.Fatal("Failed to subscribe to events:", err)
 	}
-	defer client.Disconnect(context.TODO())
 
-	// --- 2. Inyección de Dependencias (Handlers) ---
-	createProductHandler := commands.NewCreateProductHandler(eventStore, eventPublisher)
+	log.Println("API listening for events...")
+	select {}
+}
 
-	productReadRepo := repository.NewMongoProductRepository(client, "readmodel_db")
-	getProductHandler := queries.NewGetProductHandler(productReadRepo)
-
-	// --- 3. Inicializar Echo API ---
-	e := echo.New()
-	api.RegisterProductRoutes(e, createProductHandler, getProductHandler)
-
-	log.Println("Starting API server on :8080")
-	e.Logger.Fatal(e.Start(":8080"))
+func setupReadDB() *gorm.DB {
+	dsn := os.Getenv("READMODEL_DSN")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect to Read Model DB:", err)
+	}
+	return db
 }
