@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { Button } from '$lib/components/ui/button';
 	import { Ellipsis, Globe, Plus } from 'lucide-svelte';
 	import {
 		activitiesApi,
@@ -11,7 +10,6 @@
 		type Project
 	} from '$lib/api';
 	import { onMount } from 'svelte';
-	import Skeleton from '$lib/components/ui/skeleton/skeleton.svelte';
 
 	let projects = $state<Project[]>([]);
 	let activities = $state<Activity[]>([]);
@@ -166,27 +164,33 @@
 					<div class="text-center text-gray-400 text-sm py-4">No servers configured</div>
 				{:else}
 					{#each servers as server (server.id)}
-						<div class="pb-4 mb-4 last:pb-0 last:mb-0 border-b border-white/10 last:border-0">
-							<div class="flex items-center justify-between mb-2">
-								<div class="flex items-center space-x-2">
-									<span class="text-sm">🖥️</span>
-									<span class="text-sm font-medium">{server.name}</span>
+						<div class="card card-border bg-base-100 cursor-pointer">
+							<div class="card-body">
+								<div class="card-title flex items-center justify-between mb-2">
+									<div class="flex items-center space-x-2">
+										<span class="text-sm">🖥️</span>
+										<span class="text-sm font-medium">{server.name}</span>
+									</div>
+									<div class="flex items-center space-x-2">
+										<div class="w-2 h-2 rounded-full {getServerStatusColor(server.status)}"></div>
+										<span class="text-xs text-gray-400">{server.status}</span>
+									</div>
 								</div>
-								<div class="flex items-center space-x-2">
-									<div class="w-2 h-2 rounded-full {getServerStatusColor(server.status)}"></div>
-									<span class="text-xs text-gray-400">{server.status}</span>
-								</div>
-							</div>
-							<div class="text-xs text-gray-500 mb-2">{server.hostname}</div>
-							{#if server.tags && server.tags.length > 0}
-								<div class="flex flex-wrap gap-1">
-									{#each server.tags as tag}
+
+								<div class="text-xs text-gray-500 mb-2">{server.hostname}</div>
+								
+								<div class="card-actions">
+									{#if server.tags && server.tags.length > 0}
+									<div class="flex flex-wrap gap-1">
+										{#each server.tags as tag}
 										<span class="text-xs bg-white/5 border border-white/10 rounded px-2 py-0.5">
 											{tag}
 										</span>
-									{/each}
+										{/each}
+									</div>
+									{/if}
 								</div>
-							{/if}
+							</div>
 						</div>
 					{/each}
 				{/if}
