@@ -37,7 +37,7 @@ func NewK8sClient() (*K8sClient, error) {
 
 		// A. Leer la ruta de la variable de entorno personalizada
 		kubeconfigPath := os.Getenv("KUBECONFIG_PATH")
-		
+
 		if kubeconfigPath == "" {
 			// B. Si no se define KUBECONFIG_PATH, usar la ruta estándar (~/.kube/config)
 			kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
@@ -69,6 +69,26 @@ func (c *K8sClient) CreateDeployment(ctx context.Context, namespace, appName, im
 	_, err := c.client.CoreV1().Namespaces().Create(ctx, nsSpec, metav1.CreateOptions{})
 	if err != nil && !IsAlreadyExistsError(err) {
 		return fmt.Errorf("fallo al crear Namespace: %w", err)
+	}
+
+	manager := NewRegistryManager()
+	pullSecretName := os.Getenv("REGISTRY_PULL_SECRET_NAME")
+	registryHost := os.Getenv("K8S_REGISTRY_SERVICE_HOST")
+
+	secretData, err := manager.CreateK8sPullSecretData(registryHost)
+	if err != nil {
+		return fmt.Errorf("fallo al crear datos del ImagePullSecret: %w", err)
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: pullSecretName, Namespace: namespace},
+		Type:       corev1.SecretTypeDockerConfigJson,
+		Data:       secretData,
+	}
+
+	_, err = c.client.CoreV1().Secrets(namespace).Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		return fmt.Errorf("fallo al crear ImagePullSecret: %w", err)
 	}
 
 	// 1. Crear Deployment

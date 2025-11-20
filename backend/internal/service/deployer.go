@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/victorgomez09/vira-dply/internal/dto"
@@ -13,8 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const RegistryHost = "myregistry.com" // Reemplazar con tu registro de contenedores
-const DefaultDomain = "localhost"     // Dominio base para Ingress
+const DefaultDomain = "localhost" // Dominio base para Ingress
 
 // DeployerService maneja la lógica de negocio para los despliegues.
 type DeployerService struct {
@@ -79,6 +79,12 @@ func (s *DeployerService) TriggerDeployment(p *model.Project) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
 
+	engine := strings.ToLower(p.ContainerEngine)
+	if engine != "docker" && engine != "podman" {
+		s.handleDeploymentError(p, fmt.Sprintf("Motor de contenedores no soportado: %s", p.ContainerEngine), nil)
+		return
+	}
+
 	go func() {
 		log.Printf("🤖 Iniciando despliegue para el proyecto: %s (NS: %s)", p.Name, p.K8sNamespace)
 
@@ -106,8 +112,8 @@ func (s *DeployerService) TriggerDeployment(p *model.Project) {
 			return
 		}
 
-		// 4. Construir la imagen con Nixpacks, usando la ruta específica
-		imageName, err := s.buildAndPushImage(ctx, p, buildPath)
+		// 4. Construir la imagen FUERA del clúster y hacer PUSH
+		imageName, err := s.buildAndPushImage(ctx, p, buildPath, engine)
 		if err != nil {
 			s.handleDeploymentError(p, "Fallo al construir/push imagen", err)
 			return

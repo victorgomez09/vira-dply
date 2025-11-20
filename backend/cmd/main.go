@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -32,6 +34,24 @@ func main() {
 		panic("failed to connect database")
 	}
 	db.AutoMigrate(&model.Project{}, &model.User{})
+
+	registryManager := service.NewRegistryManager()
+
+	// Usamos un motor FIJO para la gestión inicial del registro local.
+	// Esto asume que uno de los dos motores está disponible para iniciar el contenedor de registro.
+	initialEngine := os.Getenv("CONTAINER_ENGINE")
+
+	ctx := context.Background()
+
+	// 2.1 Asegurar que el registro esté corriendo (usando el motor fijo)
+	if err := registryManager.EnsureRegistryRunning(ctx, initialEngine); err != nil {
+		log.Fatalf("Fallo crítico al iniciar el registro local: %v", err)
+	}
+
+	// 2.2 Autenticar la CLI local en el registro (usando el motor fijo)
+	if err := registryManager.Authenticate(ctx, initialEngine); err != nil {
+		log.Fatalf("Fallo crítico en la autenticación local del registro: %v", err)
+	}
 
 	// Init services
 	deployerSvc := service.NewDeployerService(k8sClient, db)
