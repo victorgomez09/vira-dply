@@ -4,7 +4,11 @@ go 1.24.5
 
 require github.com/labstack/echo v3.3.10+incompatible
 
-require github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
+)
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/ptr"
 )
 
@@ -20,26 +24,38 @@ type K8sClient struct {
 }
 
 func NewK8sClient() (*K8sClient, error) {
-	// 1. In-cluster configuration(if controller run inside k8s cluster)
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		// 2. Outside cluster configuration(for local development)
-		// If InClusterConfig fails, attempt to load the configuration from Kubeconfig
-		// Uncomment and adjust if running outside the cluster:
-		// home := os.Getenv("HOME")
-		// kubeconfigPath := filepath.Join(home, ".kube", "config")
-		// configuration, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-		// if error != null {
-		// return nil, fmt.Errorf("Failed to get K8s configuration: %w", err)
-		// }
-		// For now, we'll assume InClusterConfig fails in dev and is successful in prod.
-		// In production, use ONLY rest.InClusterConfig()
-		return nil, fmt.Errorf("error obtaining in-cluster config: %w", err)
+	var config *rest.Config
+	var err error
+
+	// 1. INTENTO: Configuración In-Cluster (Para producción/ejecución en K8s)
+	config, err = rest.InClusterConfig()
+	if err == nil {
+		log.Println("Usando configuración In-Cluster de Kubernetes.")
+	} else {
+		// 2. FALLBACK: Configuración Kubeconfig local (Para desarrollo)
+		log.Println("Fallo al obtener In-Cluster config. Intentando Kubeconfig local...")
+
+		// A. Leer la ruta de la variable de entorno personalizada
+		kubeconfigPath := os.Getenv("KUBECONFIG_PATH")
+		
+		if kubeconfigPath == "" {
+			// B. Si no se define KUBECONFIG_PATH, usar la ruta estándar (~/.kube/config)
+			kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		}
+
+		// Cargar la configuración desde el archivo kubeconfig
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		if err != nil {
+			// Si falla la configuración local, lanzamos el error crítico
+			return nil, fmt.Errorf("fallo al obtener configuración In-Cluster y Kubeconfig local: %w", err)
+		}
+		log.Printf("Usando configuración de Kubeconfig en: %s", kubeconfigPath)
 	}
 
+	// Usar la configuración obtenida para crear el cliente
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("error creating k8s client: %w", err)
+		return nil, fmt.Errorf("fallo al crear el cliente K8s: %w", err)
 	}
 
 	return &K8sClient{client: clientset}, nil

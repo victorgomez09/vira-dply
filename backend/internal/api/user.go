@@ -32,7 +32,7 @@ func (h *UserHandler) Login(c echo.Context) error {
 	}
 
 	user, err := h.userSvc.GetUserByUsername(u.Username)
-	if err != nil || user.Password != u.Password {
+	if err != nil || h.userSvc.VerifyPassword(u.Password, user.Password) {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Credenciales inválidas")
 	}
 

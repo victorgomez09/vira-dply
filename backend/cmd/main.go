@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/victorgomez09/vira-dply/internal/api"
@@ -13,6 +14,12 @@ import (
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Advertencia: No se encontró archivo .env. Continuando con variables de entorno del sistema.")
+	}
+
+	log.Println("🚀 Iniciando PaaS Controller...")
 	// Init k8s
 	k8sClient, err := service.NewK8sClient()
 	if err != nil {

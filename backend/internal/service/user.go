@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/victorgomez09/vira-dply/internal/model"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -15,10 +16,15 @@ func NewUserService(db *gorm.DB) *UserService {
 
 // CreateUser crea un nuevo usuario en la base de datos.
 func (s *UserService) CreateUser(username, email, password string) (*model.User, error) {
+	password, err := s.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+
 	user := &model.User{
 		Username: username,
 		Email:    email,
-		Password: password, // En producción, asegúrate de hashear la contraseña
+		Password: password,
 	}
 	result := s.db.Create(user)
 	if result.Error != nil {
@@ -45,4 +51,15 @@ func (s *UserService) GetAllUsers() ([]model.User, error) {
 		return nil, result.Error
 	}
 	return users, nil
+}
+
+func (s *UserService) HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+// VerifyPassword verifies if the given password matches the stored hash.
+func (s *UserService) VerifyPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
