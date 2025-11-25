@@ -28,13 +28,17 @@ func NewDeployerService(k8sClient *K8sClient, db *gorm.DB) *DeployerService {
 
 // SaveProject crea un nuevo registro en la DB a partir de la solicitud inicial.
 func (s *DeployerService) SaveProject(p *dto.CreateProjectRequest) (*model.Project, error) {
+	if len(strings.TrimSpace(p.Environment)) == 0 {
+		p.Environment = "production"
+	}
+
 	newProject := &model.Project{
 		Name:          p.Name,
 		GitUrl:        p.GitURL,
 		GitBranch:     p.Branch,
 		GitSourcePath: p.SourcePath,
 		Status:        "Pending", // Estado inicial
-		K8sNamespace:  "proj-" + p.Name,
+		K8sNamespace:  p.Environment,
 		PublicUrl:     "",
 	}
 
@@ -75,17 +79,18 @@ func (s *DeployerService) GetAllProjects() ([]model.Project, error) {
 }
 
 // TriggerDeployment inicia el flujo de Build/Deploy de manera asíncrona.
-func (s *DeployerService) TriggerDeployment(p *model.Project) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-	defer cancel()
+func (s *DeployerService) TriggerDeployment(p *model.Project) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute)
 
 	engine := strings.ToLower(p.ContainerEngine)
 	if engine != "docker" && engine != "podman" {
 		s.handleDeploymentError(p, fmt.Sprintf("Motor de contenedores no soportado: %s", p.ContainerEngine), nil)
-		return
+		cancel()
+		return nil
 	}
 
 	go func() {
+		defer cancel()
 		log.Printf("🤖 Iniciando despliegue para el proyecto: %s (NS: %s)", p.Name, p.K8sNamespace)
 
 		// 1. Crear directorio temporal
@@ -132,6 +137,8 @@ func (s *DeployerService) TriggerDeployment(p *model.Project) {
 		log.Printf("✅ Despliegue completado para %s. URL: %s", p.Name, p.PublicUrl)
 
 	}()
+
+	return nil
 }
 
 func (s *DeployerService) handleDeploymentError(p *model.Project, msg string, err error) {

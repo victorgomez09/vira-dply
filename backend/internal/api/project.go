@@ -38,10 +38,30 @@ func (h *DeployerHandler) CreateProjectHandler(c echo.Context) error {
 
 	// 2. Iniciar el flujo de despliegue de forma ASÍNCRONA
 	// Se pasa el objeto GORM recién creado que contiene el ID.
-	h.deployerSvc.TriggerDeployment(newProjectGORM)
+	// h.deployerSvc.TriggerDeployment(newProjectGORM)
 
 	// Devolver el objeto GORM (que ya tiene el ID y CreatedAt)
 	return c.JSON(http.StatusAccepted, newProjectGORM)
+}
+
+func (h *DeployerHandler) DeployProject(c echo.Context) error {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "ID de proyecto inválido.")
+	}
+
+	project, err := h.deployerSvc.GetProjectByID(uint(id))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return echo.NewHTTPError(http.StatusNotFound, "Proyecto no encontrado.")
+		}
+		log.Printf("Error al buscar proyecto %d en DB: %v", id, err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Fallo interno del servidor.")
+	}
+	h.deployerSvc.TriggerDeployment(project)
+
+	return nil
 }
 
 // GetProjectsHandler lista todos los proyectos de la base de datos.
@@ -65,7 +85,6 @@ func (h *DeployerHandler) GetProjectByIDHandler(c echo.Context) error {
 	}
 
 	project, err := h.deployerSvc.GetProjectByID(uint(id))
-
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return echo.NewHTTPError(http.StatusNotFound, "Proyecto no encontrado.")

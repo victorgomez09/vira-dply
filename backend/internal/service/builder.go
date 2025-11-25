@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/victorgomez09/vira-dply/internal/model"
+	"github.com/victorgomez09/vira-dply/internal/utils"
 )
 
 // K8sRegistryHost holds the Kubernetes registry host read from the environment at runtime.
@@ -26,11 +27,13 @@ var K8sRegistryHost = func() string {
 func (s *DeployerService) buildAndPushImage(ctx context.Context, p *model.Project, buildPath string, engine string) (string, error) {
 	tag := time.Now().Format("20060102-150405")
 
+	sanitizedProjectName := utils.CleanString(p.Name)
 	localRegistryHost := os.Getenv("LOCAL_REGISTRY_HOST")
 	// Usamos el host local para el tag/push
-	imageTagLocal := fmt.Sprintf("%s/%s:%s", localRegistryHost, p.Name, tag)
+	imageTagLocal := fmt.Sprintf("%s/%s:%s", localRegistryHost, sanitizedProjectName, tag)
 	// Devolvemos el tag que K8s usará (el host de servicio)
-	imageTagForK8s := fmt.Sprintf("%s/%s:%s", K8sRegistryHost, p.Name, tag)
+	// imageTagForK8s := fmt.Sprintf("%s/%s:%s", K8sRegistryHost, sanitizedProjectName, tag)
+	imageTagForK8s := fmt.Sprintf("%s/%s:%s", utils.GetOutboundIP()+":5000", sanitizedProjectName, tag)
 
 	log.Printf("   > Ejecutando nixpacks build y push con %s para imagen: %s", engine, imageTagLocal)
 

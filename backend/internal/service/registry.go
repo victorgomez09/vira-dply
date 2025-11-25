@@ -8,20 +8,28 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
 // RegistryManager maneja la vida útil y autenticación del registro.
 type RegistryManager struct {
 	host     string
+	port     int
 	username string
 	password string
 	email    string
 }
 
 func NewRegistryManager() *RegistryManager {
+	port, err := strconv.Atoi(os.Getenv("LOCAL_REGISTRY_PORT"))
+	if err != nil {
+		port = 5000
+	}
+
 	return &RegistryManager{
 		host:     os.Getenv("LOCAL_REGISTRY_HOST"),
+		port:     port,
 		username: os.Getenv("REGISTRY_USERNAME"),
 		password: os.Getenv("REGISTRY_PASSWORD"),
 		email:    os.Getenv("REGISTRY_EMAIL"),
@@ -37,9 +45,10 @@ func (m *RegistryManager) EnsureRegistryRunning(ctx context.Context, engine stri
 	exec.Command(engine, "rm", registryName).Run()
 
 	// 2. Ejecutar el registro (registry:2)
-	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", m.host, "--restart=always", "--name", registryName, "registry:2")
+	fmt.Println(strconv.Itoa(m.port))
+	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", strconv.Itoa(m.port)+":5000", "--restart=always", "--name", registryName, "registry:2")
 
-	log.Printf("Intentando levantar o asegurar el registro local (%s) con %s...", m.host, engine)
+	log.Printf("Intentando levantar o asegurar el registro local (%d) con %s...", m.port, engine)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

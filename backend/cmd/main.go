@@ -27,6 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Fallo crítico al inicializar K8s Client: %v", err)
 	}
+	k8sClient.CreateNamespace(context.Background(), "production")
 
 	// Init database
 	db, err := gorm.Open(sqlite.Open("vira-dply.db"), &gorm.Config{})
@@ -76,6 +77,7 @@ func setupRoutes(e *echo.Echo, deployerSvc *service.DeployerService, userSvc *se
 
 	p := e.Group("/projects")
 	p.POST("", ph.CreateProjectHandler)
+	p.POST("/:id/deploy", ph.DeployProject)
 	p.GET("", ph.GetProjectsHandler)
 	p.GET("/:id", ph.GetProjectByIDHandler)
 }
