@@ -46,7 +46,7 @@ func (m *RegistryManager) EnsureRegistryRunning(ctx context.Context, engine stri
 
 	// 2. Ejecutar el registro (registry:2)
 	fmt.Println(strconv.Itoa(m.port))
-	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", strconv.Itoa(m.port)+":5000", "--restart=always", "--name", registryName, "registry:2")
+	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", strconv.Itoa(m.port)+":5000", "--restart=always", "--name", registryName, "-e REGISTRY_HTTP_ADDR=0.0.0.0:5000", "-e REGISTRY_HTTP_TLS_CERTIFICATE=../certs/registry/domain.crt", "-e REGISTRY_HTTP_TLS_KEY=../certs/registry/domain.key", "registry:2")
 
 	log.Printf("Intentando levantar o asegurar el registro local (%d) con %s...", m.port, engine)
 
