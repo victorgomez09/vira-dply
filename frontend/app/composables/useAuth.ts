@@ -3,6 +3,7 @@ export const useAuth = () => {
     // Usamos useState para la reactividad.
     const user = useState<any | null>('user', () => null)
     const loggedIn = computed(() => !!user.value)
+    const authReady = useState<boolean>('authReady', () => false)
     
     // Función para obtener el token del almacenamiento (ej. Cookies)
     function getToken() {
@@ -78,15 +79,14 @@ export const useAuth = () => {
         if (loggedIn.value) return // Ya cargado
 
         const token = getToken()
+        console.log("token", token)
         if (token) {
-            // Si hay un token, verifica su validez (ej. llama a /user/me)
             try {
-                // (Implementar una llamada protegida a /user/me aquí)
-                user.value = await fetchProtected('/api/users/me') 
-                // user.value = { dummy: true, role: 'user' } // Reemplazar con datos reales
+                user.value = await fetchProtected('/api/users/me')
+                console.log("user.value", user.value)
             } catch (e) {
                 // Token inválido o expirado
-                logout()
+                // logout()
             }
         }
     }
@@ -94,6 +94,7 @@ export const useAuth = () => {
     return {
         user,
         loggedIn,
+        authReady,
         login,
         logout,
         getToken,

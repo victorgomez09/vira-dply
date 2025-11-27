@@ -24,7 +24,6 @@ func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// 1. Obtener el valor del encabezado Authorization
 		authHeader := c.Request().Header.Get("Authorization")
-		fmt.Println("AUTH HEADER", authHeader)
 
 		// La lógica de Echo para devolver un error es retornar c.JSON o c.String
 		if authHeader == "" {
@@ -45,7 +44,6 @@ func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		// 3. Lógica para verificar y decodificar el token
 		// La función verifyToken debe devolver los claims (incluyendo el ID) o un error.
 		claims, err := verifyToken(tokenString) // <--- Usa tu función JWT
-		fmt.Println("claims", claims)
 
 		if err != nil {
 			// Token inválido o expirado
@@ -73,7 +71,7 @@ func verifyToken(tokenString string) (*jwtCustomClaims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("método de firma inesperado: %v", token.Method.Alg())
 			}
-			return "secret", nil
+			return []byte("secret"), nil
 		},
 	)
 

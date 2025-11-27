@@ -9,7 +9,6 @@ export default defineNuxtPlugin(() => {
     // baseURL: config.public.backendUrl as string || "",
     
     onRequest({ options }) {
-      console.log("dentro")
       // 1. Verificar si la llamada va a tu backend y si hay un token
       if (token) {
         // 2. Adjuntar el header Authorization
