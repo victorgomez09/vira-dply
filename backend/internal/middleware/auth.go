@@ -19,44 +19,55 @@ type jwtCustomClaims struct {
 // ContextKeyUserID es la clave para almacenar el ID de usuario en el contexto de Echo.
 const ContextKeyUserID = "name"
 
-// JWTMiddleware es un middleware de Echo que verifica el token de autorización.
+// 🚨 Nombre de la cookie donde Nuxt almacena el token
+const AuthCookieName = "auth_token"
+
+// JWTMiddleware es un middleware de Echo que verifica el token de autorización,
+// buscando primero en la cookie 'auth_token' y luego en el encabezado 'Authorization'.
 func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// 1. Obtener el valor del encabezado Authorization
-		authHeader := c.Request().Header.Get("Authorization")
+		var tokenString string
 
-		// La lógica de Echo para devolver un error es retornar c.JSON o c.String
-		if authHeader == "" {
+		// 1. 🚨 INTENTAR OBTENER EL TOKEN DE LA COOKIE
+		cookie, err := c.Cookie(AuthCookieName)
+		if err == nil && cookie.Value != "" {
+			// Token encontrado en la cookie
+			tokenString = cookie.Value
+		}
+
+		// 2. INTENTAR OBTENER EL TOKEN DEL ENCABEZADO (MECANISMO DE RESPALDO)
+		if tokenString == "" {
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader != "" {
+				// Extraer el token (eliminar el prefijo "Bearer ")
+				tokenParts := strings.Split(authHeader, " ")
+				if len(tokenParts) == 2 && strings.ToLower(tokenParts[0]) == "bearer" {
+					tokenString = tokenParts[1]
+				}
+			}
+		}
+
+		// 3. VERIFICAR SI SE ENCONTRÓ ALGÚN TOKEN
+		if tokenString == "" {
 			return c.JSON(http.StatusUnauthorized, echo.Map{
-				"error": "Token de autorización requerido",
+				"error": "Token de autorización (Cookie o Header) requerido",
 			})
 		}
 
-		// 2. Extraer el token (eliminar el prefijo "Bearer ")
-		tokenParts := strings.Split(authHeader, " ")
-		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
-			return c.JSON(http.StatusUnauthorized, echo.Map{
-				"error": "Formato de token no válido. Debe ser Bearer <token>",
-			})
-		}
-		tokenString := tokenParts[1]
-
-		// 3. Lógica para verificar y decodificar el token
-		// La función verifyToken debe devolver los claims (incluyendo el ID) o un error.
+		// 4. Lógica para verificar y decodificar el token
 		claims, err := verifyToken(tokenString) // <--- Usa tu función JWT
 
 		if err != nil {
 			// Token inválido o expirado
 			return c.JSON(http.StatusUnauthorized, echo.Map{
-				"error": "Token inválido o expirado",
+				"error": "Token inválido o expirado: " + err.Error(),
 			})
 		}
 
-		// 4. Si es válido, almacena el ID de usuario en el contexto
-		// Asegúrate de que claims.UserID sea el tipo de dato correcto (ej. int)
+		// 5. Si es válido, almacena el ID de usuario en el contexto
 		c.Set(ContextKeyUserID, claims.Name)
 
-		// 5. Continuar con el siguiente handler
+		// 6. Continuar con el siguiente handler
 		return next(c)
 	}
 }
@@ -71,6 +82,7 @@ func verifyToken(tokenString string) (*jwtCustomClaims, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("método de firma inesperado: %v", token.Method.Alg())
 			}
+			// 🚨 CRÍTICO: Reemplaza "secret" con tu clave secreta REAL
 			return []byte("secret"), nil
 		},
 	)

@@ -9,6 +9,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
   if (!authReady.value) {
       // El middleware espera pasivamente a que el plugin resuelva el estado
       // antes de que la aplicación avance con la redirección.
+      return
   }
 
   // Ahora, si la autenticación ya está lista:

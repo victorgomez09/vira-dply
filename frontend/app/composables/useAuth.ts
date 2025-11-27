@@ -4,7 +4,7 @@ export const useAuth = () => {
     const user = useState<any | null>('user', () => null)
     const loggedIn = computed(() => !!user.value)
     const authReady = useState<boolean>('authReady', () => false)
-    
+
     // Función para obtener el token del almacenamiento (ej. Cookies)
     function getToken() {
         return useCookie('auth_token').value
@@ -59,20 +59,20 @@ export const useAuth = () => {
     }
 
     const fetchProtected = async (url: string, options: any = {}) => {
-    const token = getToken();
-    if (!token) {
-        throw new Error('No authentication token available.');
+        const token = getToken();
+        if (!token) {
+            throw new Error('No authentication token available.');
+        }
+
+        // Asegurar que los headers existen
+        options.headers = options.headers || {};
+
+        // 1. Inyectar el token en el encabezado
+        options.headers.Authorization = `Bearer ${token}`;
+
+        // 2. Usar $fetch de Nuxt con el encabezado modificado
+        return $fetch(url, options);
     }
-    
-    // Asegurar que los headers existen
-    options.headers = options.headers || {};
-    
-    // 1. Inyectar el token en el encabezado
-    options.headers.Authorization = `Bearer ${token}`; 
-    
-    // 2. Usar $fetch de Nuxt con el encabezado modificado
-    return $fetch(url, options);
-}
 
     // Función para verificar si el usuario ya está logueado (útil al iniciar la app)
     const checkAuth = async () => {
@@ -83,7 +83,6 @@ export const useAuth = () => {
         if (token) {
             try {
                 user.value = await fetchProtected('/api/users/me')
-                console.log("user.value", user.value)
             } catch (e) {
                 // Token inválido o expirado
                 // logout()

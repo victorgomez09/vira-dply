@@ -28,12 +28,6 @@ const schema = z.object({
 type Schema = z.output<typeof schema>
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log('Submitted', payload)
-  // const res = await $fetch(`/api/auth/login`, {
-  //   method: 'POST',
-  //   body: payload.data
-  // })
-  // console.log('res', res)
   await login({username: payload.data.username, password: payload.data.password});
 }
 </script>
@@ -42,7 +36,7 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
   <div class="flex flex-col items-center justify-center gap-4 p-4">
     <UPageCard variant="soft" class="w-full max-w-md">
       <UAuthForm :schema="schema" title="Login" description="Enter your credentials to access your account."
-        icon="i-lucide-user" :fields="fields" @submit.prevent="onSubmit" />
+        icon="i-lucide-user" :fields="fields" @submit="onSubmit" />
     </UPageCard>
   </div>
 </template>

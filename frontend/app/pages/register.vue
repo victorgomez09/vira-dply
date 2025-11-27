@@ -40,7 +40,6 @@ async function onSubmit(payload: FormSubmitEvent<Schema>) {
         method: 'POST',
         body: payload.data
     })
-    console.log('res', res)
 }
 </script>
 
