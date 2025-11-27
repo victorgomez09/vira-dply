@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // RegistryManager maneja la vida útil y autenticación del registro.
@@ -46,7 +48,7 @@ func (m *RegistryManager) EnsureRegistryRunning(ctx context.Context, engine stri
 
 	// 2. Ejecutar el registro (registry:2)
 	fmt.Println(strconv.Itoa(m.port))
-	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", strconv.Itoa(m.port)+":5000", "--restart=always", "--name", registryName, "-e REGISTRY_HTTP_ADDR=0.0.0.0:5000", "-e REGISTRY_HTTP_TLS_CERTIFICATE=../certs/registry/domain.crt", "-e REGISTRY_HTTP_TLS_KEY=../certs/registry/domain.key", "registry:2")
+	cmd := exec.CommandContext(ctx, engine, "run", "-d", "-p", strconv.Itoa(m.port)+":5000", "--restart=always", "--name", registryName, "registry:2")
 
 	log.Printf("Intentando levantar o asegurar el registro local (%d) con %s...", m.port, engine)
 
@@ -121,4 +123,34 @@ func (m *RegistryManager) CreateK8sPullSecretData(k8sHost string) (map[string][]
 	return map[string][]byte{
 		".dockerconfigjson": dockerConfigJSON,
 	}, nil
+}
+
+// waitForRegistryHealthy intenta conectar al host del registro hasta que esté disponible.
+func (m *RegistryManager) WaitForRegistryHealthy(host string, timeout time.Duration) error {
+	url := fmt.Sprintf("http://%s/v2/", host) // Usamos HTTP para la verificación, ya que el cliente Docker maneja la seguridad/inseguridad.
+	client := http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	start := time.Now()
+
+	for time.Since(start) < timeout {
+		resp, err := client.Get(url)
+
+		if err == nil {
+			// Si la respuesta es 200 OK (o incluso 401 Unauthorized),
+			// significa que el servidor está respondiendo.
+			if resp.StatusCode != http.StatusServiceUnavailable && resp.StatusCode != http.StatusBadGateway {
+				resp.Body.Close()
+				fmt.Printf("✅ Registro %s listo en %s.\n", host, time.Since(start).Round(time.Second))
+				return nil
+			}
+			resp.Body.Close()
+		}
+
+		// Esperar antes de reintentar
+		time.Sleep(1 * time.Second)
+	}
+
+	return fmt.Errorf("el registro local no respondió después de %v", timeout)
 }

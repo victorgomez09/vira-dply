@@ -1,0 +1,1 @@
+k3d cluster create paas-cluster --k3s-arg "--registry-config=/etc/containerd/containerd-config.toml@server:0" --volume "$(pwd)/containerd-config.toml:/etc/containerd/containerd-config.toml@server:0" --registry-use-hosts

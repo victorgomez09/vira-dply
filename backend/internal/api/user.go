@@ -7,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/victorgomez09/vira-dply/internal/dto"
+	"github.com/victorgomez09/vira-dply/internal/middleware"
 	"github.com/victorgomez09/vira-dply/internal/service"
 )
 
@@ -20,6 +21,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 
 type jwtCustomClaims struct {
 	Name  string `json:"name"`
+	Email string `json:"email"`
 	Admin bool   `json:"admin"`
 	jwt.RegisteredClaims
 }
@@ -50,8 +52,9 @@ func (h *UserHandler) Login(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "No se pudo generar el token")
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{
-		"token": t,
+	return c.JSON(http.StatusOK, map[string]any{
+		"token":     t,
+		"user_data": map[string]string{"email": user.Email, "username": user.Username},
 	})
 }
 
@@ -70,4 +73,30 @@ func (h *UserHandler) Register(c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]string{
 		"message": "Usuario creado exitosamente",
 	})
+}
+
+// MeHandler maneja la solicitud GET /users/me
+func (h *UserHandler) MeHandler(c echo.Context) error {
+	// 1. Obtener el ID de usuario del Contexto de Echo
+	userIDValue := c.Get(middleware.ContextKeyUserID)
+	if userIDValue == nil {
+		// Esto solo ocurriría si el middleware no se ejecutó o falló.
+		return c.String(http.StatusInternalServerError, "ID de usuario no encontrado en el contexto")
+	}
+
+	// Conversión del ID (ajustar el tipo según cómo lo guardó el middleware)
+	userID, ok := userIDValue.(string) // Asumimos que el ID es un int
+	if !ok {
+		return c.String(http.StatusInternalServerError, "Tipo de ID de usuario no válido")
+	}
+
+	user, err := h.userSvc.GetUserByUsername(userID)
+	if err != nil {
+		// Usuario no encontrado en la DB
+		return c.JSON(http.StatusNotFound, echo.Map{"error": "Usuario no encontrado"})
+	}
+
+	// 3. Respuesta Exitosa usando el método JSON de Echo
+	// ¡IMPORTANTE! Asegúrate de que el struct 'user' NO incluya el hash de la contraseña.
+	return c.JSON(http.StatusOK, user)
 }

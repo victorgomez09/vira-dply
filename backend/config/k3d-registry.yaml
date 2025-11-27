@@ -1,0 +1,6 @@
+# k3d-registry.yaml
+mirrors:
+  "10.0.2.54:5000":
+    endpoint:
+      - "http://10.0.2.54:5000"
+    insecure: true

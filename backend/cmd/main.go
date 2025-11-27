@@ -4,11 +4,13 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/victorgomez09/vira-dply/internal/api"
+	middl "github.com/victorgomez09/vira-dply/internal/middleware"
 	"github.com/victorgomez09/vira-dply/internal/model"
 	"github.com/victorgomez09/vira-dply/internal/service"
 	"gorm.io/driver/sqlite"
@@ -48,6 +50,9 @@ func main() {
 	if err := registryManager.EnsureRegistryRunning(ctx, initialEngine); err != nil {
 		log.Fatalf("Fallo crítico al iniciar el registro local: %v", err)
 	}
+	if err := registryManager.WaitForRegistryHealthy("localhost:5000", 60*time.Second); err != nil {
+		log.Fatalf("Fallo crítico al iniciar el registro local: %v", err)
+	}
 
 	// 2.2 Autenticar la CLI local en el registro (usando el motor fijo)
 	if err := registryManager.Authenticate(ctx, initialEngine); err != nil {
@@ -71,13 +76,17 @@ func setupRoutes(e *echo.Echo, deployerSvc *service.DeployerService, userSvc *se
 	ph := api.NewDeployerHandler(deployerSvc)
 	uh := api.NewUserHandler(userSvc)
 
-	a := e.Group("/auth")
+	api := e.Group("/api")
+	a := api.Group("/auth")
 	a.POST("/login", uh.Login)
 	a.POST("/register", uh.Register)
 
-	p := e.Group("/projects")
+	p := api.Group("/projects", middl.JWTMiddleware)
 	p.POST("", ph.CreateProjectHandler)
 	p.POST("/:id/deploy", ph.DeployProject)
 	p.GET("", ph.GetProjectsHandler)
 	p.GET("/:id", ph.GetProjectByIDHandler)
+
+	u := api.Group("/users", middl.JWTMiddleware)
+	u.GET("/me", uh.MeHandler)
 }

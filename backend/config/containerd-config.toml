@@ -1,0 +1,8 @@
+# contained-config.toml
+# Este fragmento configura el registry de Docker como 'inseguro' (http)
+[plugins."io.containerd.grpc.v1.cri".registry]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs]
+    [plugins."io.containerd.grpc.v1.cri".registry.configs."0.0.1.76:5000"]
+      # Este host usa HTTP y no TLS.
+      # Se debe configurar en todos los nodos de K8s.
+      insecure = true
