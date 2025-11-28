@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-5.0.xsd">
+
+    <changeSet id="1_create_users_table" author="VGE">
+        <comment>Crea la tabla users para la gestión de usuarios.</comment>
+
+        <createTable tableName="users">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+
+            <column name="email" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true" />
+            </column>
+
+            <column name="password" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="full_name" type="VARCHAR(150)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="is_enabled" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="role" type="VARCHAR(50)" defaultValue="USER">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="created_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()">
+                <constraints nullable="false" />
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITH TIME ZONE" defaultValueComputed="NOW()" />
+
+        </createTable>
+    </changeSet>
+
+    <changeSet id="2_create_user_index" author="VGE">
+        <comment>Crea un índice en la columna 'email' para búsquedas rápidas.</comment>
+
+        <createIndex
+            indexName="idx_app_user_email"
+            tableName="users"
+            unique="true">
+            <column name="email" />
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="3_create_user_sequence" author="VGE" runOnChange="true">
+        <comment>Crea la secuencia para la clave primaria de users.</comment>
+
+        <createSequence sequenceName="users_pk_seq" incrementBy="1" startValue="1" />
+
+    </changeSet>
+
+</databaseChangeLog>
