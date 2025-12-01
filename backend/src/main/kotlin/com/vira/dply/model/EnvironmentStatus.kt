@@ -1,9 +1,8 @@
 package com.vira.dply.model
 
 enum class EnvironmentStatus {
-    CREATING,
+    PROVISIONING,
     READY,
     FAILED,
-    DELETING,
-    DELETED
+    DELETING
 }

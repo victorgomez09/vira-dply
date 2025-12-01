@@ -29,7 +29,7 @@ data class Environment(
     var name: String,               // dev, staging, prod, local-1
 
     @Enumerated(EnumType.STRING)
-    var status: EnvironmentStatus = EnvironmentStatus.CREATING,
+    var status: EnvironmentStatus = EnvironmentStatus.PROVISIONING,
 
     var description: String?,
     var kubeconfigRef: String?,

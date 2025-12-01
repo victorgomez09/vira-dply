@@ -4,71 +4,104 @@ import com.vira.dply.model.Environment
 import com.vira.dply.model.EnvironmentStatus
 import com.vira.dply.repository.EnvironmentRepository
 import com.vira.dply.util.KubeconfigSecretStore
-import com.vira.dply.util.KubernetesClientUtil
 import io.kubernetes.client.openapi.ApiClient
-import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.util.Config
 import io.kubernetes.client.util.KubeConfig
-import jakarta.transaction.Transactional
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.io.StringReader
-import java.time.Instant
 import java.util.concurrent.TimeUnit
+import kotlin.math.min
+import kotlin.random.Random
 
 @Service
 class EnvironmentService(
     private val environmentRepository: EnvironmentRepository,
     private val kubeconfigSecretStore: KubeconfigSecretStore
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
 
-    // Scope dedicado para provisión de clusters
+    private val logger = LoggerFactory.getLogger(javaClass)
+    // Scope dedicado para todas las provisiones
     private val provisionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Map para manejar cancelación de provisiones
+    private val cancellationMap = mutableMapOf<Long, Job>()
+
+    fun findById(id: Long): Environment? {
+        return environmentRepository.findById(id).orElse(null)
+    }
 
     fun create(payload: Environment): Environment {
-        // 1️⃣ Crear Environment en BD
         val savedEnv = environmentRepository.save(payload)
 
-        // 2️⃣ Lanzar provisión asíncrona
-        provisionScope.launch {
+        val job = provisionScope.launch {
             try {
-                provisionCluster(savedEnv)
+                provisionClusterWithRetry(savedEnv)
+            } catch (ex: CancellationException) {
+                logger.warn("Provisioning cancelled for ${savedEnv.id}")
+                savedEnv.status = EnvironmentStatus.FAILED
+                environmentRepository.save(savedEnv)
             } catch (ex: Exception) {
                 logger.error("Error provisioning cluster ${savedEnv.id}", ex)
                 savedEnv.status = EnvironmentStatus.FAILED
                 environmentRepository.save(savedEnv)
+            } finally {
+                cancellationMap.remove(savedEnv.id)
             }
         }
 
+        cancellationMap[savedEnv.id] = job
         return savedEnv
+    }
+
+    fun cancelProvision(envId: Long) {
+        cancellationMap[envId]?.cancel()
+    }
+
+    private suspend fun provisionClusterWithRetry(env: Environment) {
+        val maxAttempts = 3
+        var delayMs = 1000L
+
+        repeat(maxAttempts) { attempt ->
+            try {
+                provisionCluster(env)
+                return  // éxito, salimos
+            } catch (ex: Exception) {
+                if (attempt == maxAttempts - 1) throw ex  // último intento, lanza excepción
+                logger.warn("Attempt ${attempt + 1} failed for cluster ${env.id}, retrying in $delayMs ms", ex)
+                delay(delayMs)
+                delayMs = min(delayMs * 2, 10000L) + Random.nextLong(0, 500)
+            }
+        }
     }
 
     private suspend fun provisionCluster(env: Environment) {
         val clusterName = "env-${env.id}"
+        logger.info("Starting provisioning for cluster $clusterName")
 
         // 1) Crear cluster k3d
+        logger.info("Creating k3d cluster $clusterName")
         runProcess(listOf("k3d", "cluster", "create", clusterName, "--wait"))
 
         // 2) Obtener kubeconfig
+        logger.info("Retrieving kubeconfig for $clusterName")
         val kubeconfig = runProcessCaptureOutput(listOf("k3d", "kubeconfig", "get", clusterName))
 
         // 3) Validar cluster con client-java
+        logger.info("Validating cluster $clusterName")
         val client = createKubernetesClient(kubeconfig)
         validateClusterReady(client)
 
-        // 4) Guardar kubeconfig en secret store
+        // 4) Guardar kubeconfig
+        logger.info("Storing kubeconfig for ${env.id}")
         val kubeRef = kubeconfigSecretStore.store(env.id.toString(), kubeconfig)
 
         // 5) Actualizar Environment
         env.kubeconfigRef = kubeRef.toString()
         env.status = EnvironmentStatus.READY
         environmentRepository.save(env)
+        logger.info("Provisioning completed for cluster $clusterName")
     }
 
     private fun createKubernetesClient(kubeconfigYaml: String): ApiClient {
