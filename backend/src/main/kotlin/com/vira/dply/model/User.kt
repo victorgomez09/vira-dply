@@ -28,7 +28,7 @@ data class User (
 
     @Column(name = "roles")
     @Enumerated(EnumType.STRING)
-    var roles: List<Role>,
+    var roles: List<UserRole>,
 
     @Column(name = "created_at")
     var createdAt: Date,
@@ -38,7 +38,7 @@ data class User (
 ): Serializable, UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> {
-        return roles.stream().map { authority: Role -> SimpleGrantedAuthority(authority.toString()) }.toList()
+        return roles.stream().map { authority: UserRole -> SimpleGrantedAuthority(authority.toString()) }.toList()
     }
 
     override fun getPassword(): String {

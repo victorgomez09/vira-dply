@@ -1,6 +1,6 @@
 package com.vira.dply.service
 
-import com.vira.dply.model.Role
+import com.vira.dply.model.UserRole
 import com.vira.dply.model.User
 import com.vira.dply.repository.UserRepository
 import org.springframework.security.authentication.AuthenticationManager
@@ -19,7 +19,7 @@ class AuthService(
 
     fun register(user: User): User {
         user.encodedPassword = passwordEncoder.encode(user.password).toString()
-        user.roles = listOf(Role.ROLE_USER)
+        user.roles = listOf(UserRole.ROLE_USER)
 
         return userRepository.save(user)
     }
