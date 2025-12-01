@@ -1,12 +1,13 @@
-package com.vira.dply.controller
+package com.vira.dply.model
 
-import jakarta.persistence.Entity
-import jakarta.persistence.Table
-import jakarta.persistence.Id
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.SequenceGenerator
-import jakarta.persistence.Column
+import jakarta.persistence.*
+import jakarta.validation.constraints.Email
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.userdetails.UserDetails
+import java.io.Serializable
+import java.util.*
+
 
 @Entity
 @Table(name = "users")
@@ -21,7 +22,7 @@ data class User (
     var email: String,
 
     @Column(name = "full_name", nullable = false)
-    var fullName: String, 
+    var fullName: String,
 
     @Column(name = "password", nullable = false)
     var password: String,
@@ -29,12 +30,42 @@ data class User (
     @Column(name = "is_enabled")
     var isEnabled: Boolean = true,
 
-    @Column(name = "role", nullable = false)
-    var role: String = "USER",
+    @Column(name = "roles")
+    @Enumerated(EnumType.STRING)
+    var roles: List<Role>,
 
     @Column(name = "created_at")
-    var createdAt: Date = null,
+    var createdAt: Date,
 
     @Column(name = "updated_at")
-    var updatedAt: Date = null
-): Serializable
+    var updatedAt: Date
+): Serializable, UserDetails {
+
+    override fun getAuthorities(): Collection<GrantedAuthority> {
+        return roles.stream().map({ authority: Role -> SimpleGrantedAuthority(authority.toString()) }).toList()
+    }
+
+    override fun getPassword(): String? {
+        return password
+    }
+
+    override fun getUsername(): String {
+        return email
+    }
+
+    override fun isAccountNonExpired(): Boolean {
+        return true
+    }
+
+    override fun isAccountNonLocked(): Boolean {
+        return true
+    }
+
+    override fun isCredentialsNonExpired(): Boolean {
+        return true
+    }
+
+    override fun isEnabled(): Boolean {
+        return true
+    }
+}
