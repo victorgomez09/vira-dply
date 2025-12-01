@@ -10,17 +10,23 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 
 @Service
-class AuthService(val userRepository: UserRepository, val passwordEncoder: PasswordEncoder, val authenticationManager: AuthenticationManager, val tokenService: JwtService) {
+class AuthService(
+    val userRepository: UserRepository,
+    val passwordEncoder: PasswordEncoder,
+    val authenticationManager: AuthenticationManager,
+    val tokenService: JwtService
+) {
 
     fun register(user: User): User {
-        user.password = passwordEncoder.encode(user.password).toString()
+        user.encodedPassword = passwordEncoder.encode(user.password).toString()
         user.roles = listOf(Role.ROLE_USER)
 
         return userRepository.save(user)
     }
 
     fun login(email: String, password: String): String {
-        val authentication: Authentication = authenticationManager.authenticate(UsernamePasswordAuthenticationToken(email, password))
+        val authentication: Authentication =
+            authenticationManager.authenticate(UsernamePasswordAuthenticationToken(email, password))
         val user: User = authentication.principal as User
 
         return tokenService.generateToken(authentication)

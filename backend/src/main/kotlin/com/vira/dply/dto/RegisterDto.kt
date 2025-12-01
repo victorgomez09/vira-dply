@@ -1,7 +1,7 @@
 package com.vira.dply.dto
 
 data class RegisterDto(
-    val email: String,
-    val fullName: String,
-    val password: String
+    var email: String,
+    var fullName: String,
+    var password: String
 )

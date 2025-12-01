@@ -8,7 +8,6 @@ import org.springframework.security.core.userdetails.UserDetails
 import java.io.Serializable
 import java.util.*
 
-
 @Entity
 @Table(name = "users")
 data class User (
@@ -25,10 +24,7 @@ data class User (
     var fullName: String,
 
     @Column(name = "password", nullable = false)
-    var password: String,
-
-    @Column(name = "is_enabled")
-    var isEnabled: Boolean = true,
+    var encodedPassword: String,
 
     @Column(name = "roles")
     @Enumerated(EnumType.STRING)
@@ -42,11 +38,11 @@ data class User (
 ): Serializable, UserDetails {
 
     override fun getAuthorities(): Collection<GrantedAuthority> {
-        return roles.stream().map({ authority: Role -> SimpleGrantedAuthority(authority.toString()) }).toList()
+        return roles.stream().map { authority: Role -> SimpleGrantedAuthority(authority.toString()) }.toList()
     }
 
-    override fun getPassword(): String? {
-        return password
+    override fun getPassword(): String {
+        return encodedPassword
     }
 
     override fun getUsername(): String {
