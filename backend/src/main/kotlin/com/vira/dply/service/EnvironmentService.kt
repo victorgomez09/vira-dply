@@ -1,10 +1,15 @@
 package com.vira.dply.service
 
 import com.vira.dply.model.Environment
+import com.vira.dply.model.EnvironmentRole
 import com.vira.dply.model.EnvironmentStatus
+import com.vira.dply.model.EnvironmentUser
+import com.vira.dply.model.User
 import com.vira.dply.repository.EnvironmentRepository
+import com.vira.dply.repository.EnvironmentUserRepository
 import com.vira.dply.util.KubeconfigSecretStore
 import io.kubernetes.client.openapi.ApiClient
+import io.kubernetes.client.openapi.Configuration
 import io.kubernetes.client.openapi.apis.CoreV1Api
 import io.kubernetes.client.util.Config
 import io.kubernetes.client.util.KubeConfig
@@ -19,21 +24,31 @@ import kotlin.random.Random
 @Service
 class EnvironmentService(
     private val environmentRepository: EnvironmentRepository,
+    private val environmentUserRepository: EnvironmentUserRepository,
     private val kubeconfigSecretStore: KubeconfigSecretStore
 ) {
-
     private val logger = LoggerFactory.getLogger(javaClass)
     // Scope dedicado para todas las provisiones
     private val provisionScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     // Map para manejar cancelación de provisiones
     private val cancellationMap = mutableMapOf<Long, Job>()
 
+    fun findAll(): List<Environment> {
+        return environmentRepository.findAll()
+    }
+
     fun findById(id: Long): Environment? {
         return environmentRepository.findById(id).orElse(null)
     }
 
-    fun create(payload: Environment): Environment {
+    fun create(payload: Environment, user: User): Environment {
         val savedEnv = environmentRepository.save(payload)
+        val environmetUser = EnvironmentUser(
+            id = 0L,
+            environment = savedEnv,
+            user = null,
+            role = EnvironmentRole.ADMIN
+        )
 
         val job = provisionScope.launch {
             try {
@@ -57,6 +72,20 @@ class EnvironmentService(
 
     fun cancelProvision(envId: Long) {
         cancellationMap[envId]?.cancel()
+    }
+
+    fun delete(envId: Long) {
+        val env = findById(envId) ?: return
+        val clusterName = "env-${env.id}"
+
+        try {
+            logger.info("Deleting k3d cluster $clusterName")
+            runProcess(listOf("k3d", "cluster", "delete", clusterName))
+        } catch (ex: Exception) {
+            logger.error("Error deleting cluster $clusterName", ex)
+        }
+
+        environmentRepository.deleteById(envId)
     }
 
     private suspend fun provisionClusterWithRetry(env: Environment) {
@@ -107,7 +136,7 @@ class EnvironmentService(
     private fun createKubernetesClient(kubeconfigYaml: String): ApiClient {
         val kubeConfig = KubeConfig.loadKubeConfig(StringReader(kubeconfigYaml))
         val client = Config.fromConfig(kubeConfig)
-        io.kubernetes.client.openapi.Configuration.setDefaultApiClient(client)
+        Configuration.setDefaultApiClient(client)
         return client
     }
 

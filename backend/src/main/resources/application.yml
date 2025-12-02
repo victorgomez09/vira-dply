@@ -1,0 +1,32 @@
+# CONFIGURACIÓN POSTGRES
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/vira_dply
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  # CONFIGURACIÓN DE LIQUIBASE
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/master_changelog.xml
+    default-schema: public
+    liquibase-schema: public
+
+  # CONFIGURACIÓN DE JPA (Para delegar el DDL a Liquibase)
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+# JWT
+application:
+  security:
+    jwt:
+      secret-key: 586B633834416E396D7436753879382F423F4428482B4C6250655367566B5970
+      expiration: 900000 #  15 min in ms
+      cookie-name: jwt-cookie
+
+# Logging
+#logging:
+#  level:
+#    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: error

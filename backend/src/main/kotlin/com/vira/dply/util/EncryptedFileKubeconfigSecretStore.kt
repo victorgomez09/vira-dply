@@ -24,7 +24,7 @@ class EncryptedFileKubeconfigSecretStore(
         return KubeconfigRef("file", file.name)
     }
 
-    override fun load(ref: KubeconfigRef): String {
+    override fun load(ref: String): String {
         val file = File(baseDir, ref.id)
         if (!file.exists()) throw IllegalStateException("Kubeconfig not found: ${ref.id}")
         val decrypted = decrypt(file.readBytes(), masterKeyProvider.key())
