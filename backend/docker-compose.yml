@@ -1,11 +1,11 @@
 services:
-  postgres:
-    image: postgres:14-alpine
-    ports:
-      - 5433:5432
-    volumes:
-      - ~/apps/postgres:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=vira_dply
+    database_postgres:
+      image: postgres:14
+      ports:
+        - 5432:5432
+      environment:
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_USER: postgres
+        POSTGRES_DB: vira_dply 
+      volumes:
+        - ${HOME}/postgres-data/:/var/lib/postgresql/data
