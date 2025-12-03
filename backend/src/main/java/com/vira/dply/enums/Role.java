@@ -33,5 +33,7 @@ public enum Role {
    * - ver estado
    * - ver logs
    */
-  VIEWER
+  VIEWER,
+
+  MEMBER
 }

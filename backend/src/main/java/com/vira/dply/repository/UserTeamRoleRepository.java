@@ -25,4 +25,6 @@ public interface UserTeamRoleRepository
             Iterable<Role> roles);
 
         List<UserTeamRoleEntity> findByTeam(TeamEntity team);
+
+        Optional<UserTeamRoleEntity> findByTeamIdAndUserId(UUID teamId, UUID userId);
 }

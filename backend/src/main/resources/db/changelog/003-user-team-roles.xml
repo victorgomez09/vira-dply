@@ -2,31 +2,54 @@
 <databaseChangeLog
   xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="
-      http://www.liquibase.org/xml/ns/dbchangelog
-      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
-  <changeSet id="002-1-create-user-team-roles" author="paas">
+  <changeSet id="003-1-create-user-team-roles" author="paas">
+
+    <createTable tableName="teams">
+      <column name="id" type="uuid">
+        <constraints primaryKey="true" nullable="false" />
+      </column>
+      <column name="name" type="varchar(255)">
+        <constraints nullable="false" />
+      </column>
+      <column name="environment_id" type="uuid">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <addForeignKeyConstraint
+      baseTableName="teams"
+      baseColumnNames="environment_id"
+      referencedTableName="environments"
+      referencedColumnNames="id"
+      constraintName="fk_teams_environment"
+      onDelete="CASCADE" />
+
+    <addUniqueConstraint
+      tableName="teams"
+      columnNames="name,environment_id"
+      constraintName="uq_teams_name_environment" />
 
     <createTable tableName="user_team_roles">
       <column name="id" type="uuid">
-        <constraints primaryKey="true" nullable="false"/>
+        <constraints primaryKey="true" nullable="false" />
       </column>
 
       <column name="user_id" type="uuid">
-        <constraints nullable="false"/>
+        <constraints nullable="false" />
       </column>
 
       <column name="team_id" type="uuid">
-        <constraints nullable="false"/>
+        <constraints nullable="false" />
       </column>
 
       <column name="role" type="varchar(50)">
-        <constraints nullable="false"/>
+        <constraints nullable="false" />
       </column>
 
       <column name="created_at" type="timestamp">
-        <constraints nullable="false"/>
+        <constraints nullable="false" />
       </column>
     </createTable>
 
@@ -37,7 +60,7 @@
       baseColumnNames="user_id"
       referencedTableName="users"
       referencedColumnNames="id"
-      onDelete="CASCADE"/>
+      onDelete="CASCADE" />
 
     <!-- FK: team -->
     <addForeignKeyConstraint
@@ -46,25 +69,25 @@
       baseColumnNames="team_id"
       referencedTableName="teams"
       referencedColumnNames="id"
-      onDelete="CASCADE"/>
+      onDelete="CASCADE" />
 
     <!-- Un usuario no puede tener dos roles en el mismo team -->
     <addUniqueConstraint
       tableName="user_team_roles"
       columnNames="user_id,team_id"
-      constraintName="uk_user_team_roles_user_team"/>
+      constraintName="uk_user_team_roles_user_team" />
 
     <!-- Índices para rendimiento -->
     <createIndex
       indexName="idx_user_team_roles_user"
       tableName="user_team_roles">
-      <column name="user_id"/>
+      <column name="user_id" />
     </createIndex>
 
     <createIndex
       indexName="idx_user_team_roles_team"
       tableName="user_team_roles">
-      <column name="team_id"/>
+      <column name="team_id" />
     </createIndex>
 
   </changeSet>

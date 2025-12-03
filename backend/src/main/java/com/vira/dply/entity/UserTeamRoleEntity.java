@@ -3,7 +3,7 @@ package com.vira.dply.entity;
 import java.time.Instant;
 import java.util.UUID;
 
-import com.vira.dply.enums.Role;
+import com.vira.dply.enums.TeamRole;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -54,7 +54,7 @@ public class UserTeamRoleEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 50)
-  private Role role;
+  private TeamRole role;
 
   @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt = Instant.now();

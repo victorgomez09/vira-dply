@@ -6,7 +6,7 @@
         http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
-    <changeSet id="003-1-create-environments" author="paas">
+    <changeSet id="002-1-create-environments" author="paas">
         <createTable tableName="environments">
             <column name="id" type="uuid">
                 <constraints primaryKey="true" nullable="false"/>
@@ -15,7 +15,13 @@
                 <constraints nullable="false" unique="true"/>
             </column>
             <column name="kube_context" type="varchar(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="status" type="varchar(255)">
                 <constraints nullable="false"/>
+            </column>
+            <column name="kube_config_path" type="TEXT">
+                <constraints nullable="true"/>
             </column>
         </createTable>
 

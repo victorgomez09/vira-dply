@@ -1,14 +1,20 @@
 package com.vira.dply.service;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
 import com.vira.dply.entity.EnvironmentEntity;
+import com.vira.dply.entity.TeamEntity;
+import com.vira.dply.entity.UserTeamRoleEntity;
+import com.vira.dply.enums.TeamRole;
 import com.vira.dply.repository.EnvironmentRepository;
+import com.vira.dply.repository.TeamRepository;
+import com.vira.dply.repository.UserRepository;
+import com.vira.dply.repository.UserTeamRoleRepository;
 import com.vira.dply.util.K3dClusterManagerUtil;
+import com.vira.dply.util.StringUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,29 +24,42 @@ public class EnvironmentService {
 
     private final EnvironmentRepository repository;
     private final K3dClusterManagerUtil k3dClusterManagerUtil;
+    private final EnvironmentProvisioner environmentProvisioner;
+    private final TeamRepository teamRepository;
+    private final UserTeamRoleRepository userTeamRoleRepository;
+    private final UserRepository userRepository;
+    private final StringUtil stringUtil;
 
-    public EnvironmentEntity createEnvironment(EnvironmentEntity env) {
+    public EnvironmentEntity createEnvironment(EnvironmentEntity env, UUID creator) {
         if (repository.existsByName(env.getName())) {
             throw new IllegalArgumentException("Environment already exists");
         }
 
-        if (env.getKubeConfigPath() == null || env.getKubeConfigPath().isBlank()) {
-            // Crear cluster k3d por defecto y obtener kubeconfig
-            String clusterName = "cluster-" + UUID.randomUUID();
-            try {
-                env.setKubeConfigPath(k3dClusterManagerUtil.createClusterWithDefaultConfig(clusterName));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        String clusterName = stringUtil.removeTrailingDash(("cluster-" + UUID.randomUUID()).substring(0, 32));
+        env.setKubeContext(clusterName);
 
-        env.setKubeContext(env.getName());
+        env = repository.save(env);
 
-        return repository.save(env);
+        environmentProvisioner.provisionAsync(env.getId());
+
+        TeamEntity team = new TeamEntity();
+        team.setName("default");
+        team.setEnvironment(env);
+
+        team = teamRepository.save(team);
+
+        UserTeamRoleEntity utr = new UserTeamRoleEntity();
+        utr.setUser(userRepository.findById(creator).orElseThrow(() -> new IllegalArgumentException()));
+        utr.setTeam(team);
+        utr.setRole(TeamRole.OWNER);
+
+        userTeamRoleRepository.save(utr);
+
+        return env;
     }
 
-    public List<EnvironmentEntity> listEnvironments() {
-        return repository.findAll();
+    public List<EnvironmentEntity> listEnvironments(UUID id) {
+        return repository.findAllAccessibleByUser(id);
     }
 
     public EnvironmentEntity getEnvironment(UUID id) {

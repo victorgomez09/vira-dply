@@ -4,9 +4,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import com.vira.dply.enums.EnvironmentStatus;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
@@ -18,7 +22,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "environments", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_environment_name", columnNames = {"name"})
+        @UniqueConstraint(name = "uk_environment_name", columnNames = { "name" })
 })
 @Data
 @AllArgsConstructor
@@ -35,13 +39,13 @@ public class EnvironmentEntity {
     @Column(nullable = false)
     private String kubeContext; // nombre del contexto de Kubernetes
 
-    @Column(name = "kube_config_path", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private EnvironmentStatus status = EnvironmentStatus.PENDING;
+
+    @Column(name = "kube_config_path", nullable = true)
     private String kubeConfigPath;
 
-    @OneToMany(
-        mappedBy = "environment",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "environment", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TeamEntity> teams = new HashSet<>();
 }
