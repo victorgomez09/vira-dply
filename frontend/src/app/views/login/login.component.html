@@ -1,0 +1,16 @@
+<p-card header="Login">
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="p-field">
+            <label for="username">Username</label>
+            <input id="username" pInputText formControlName="username" />
+        </div>
+
+        <div class="p-field">
+            <label for="password">Password</label>
+            <input id="password" type="password" pInputText formControlName="password" />
+        </div>
+
+        <button pButton type="submit" label="Login"></button>
+    </form>
+</p-card>
+<p-toast></p-toast>
