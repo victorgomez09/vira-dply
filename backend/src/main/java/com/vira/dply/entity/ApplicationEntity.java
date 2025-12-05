@@ -5,7 +5,9 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.vira.dply.enums.ApplicationStatus;
 import com.vira.dply.enums.ApplicationType;
+import com.vira.dply.enums.BuildStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -24,7 +26,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "applications", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"project_id", "name"})
+        @UniqueConstraint(columnNames = { "project_id", "name" })
 })
 @Data
 @AllArgsConstructor
@@ -49,12 +51,30 @@ public class ApplicationEntity {
 
     private String gitBranch = "main";
 
+    private String gitUsername;
+    
+    private String gitPasswordOrToken;
+    
+    private String gitPrivateKey;
+    
+    private String gitPassphrase;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ApplicationType type;
 
+    @Enumerated(EnumType.STRING)
+    private BuildStatus buildStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApplicationStatus status = ApplicationStatus.CREATED;
+
     @Column(nullable = false)
     private int replicas = 1;
+
+    private String imageName;
+    private String buildLogs;
 
     private boolean autoScalable = false;
 

@@ -4,7 +4,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
 
-    <changeSet id="010-create-applications" author="paas">
+    <changeSet id="005-1-create-applications" author="paas">
         <createTable tableName="applications">
             <column name="id" type="uuid">
                 <constraints primaryKey="true" nullable="false" />
@@ -42,6 +42,22 @@
             tableName="applications"
             columnNames="project_id,name"
             constraintName="uk_application_project_name" />
+    </changeSet>
+
+    <changeSet id="005-2-add-application-status" author="paas">
+        <addColumn tableName="applications">
+            <column name="status" type="varchar(50)" defaultValue="CREATED" />
+            <column name="image_name" type="varchar(255)" />
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="005-3-add-application-git-credentials" author="paas">
+        <addColumn tableName="applications">
+            <column name="git_username" type="varchar(255)" />
+            <column name="git_password_or_token" type="varchar(255)" />
+            <column name="git_private_key" type="varchar(255)" />
+            <column name="git_passphrase" type="varchar(255)" />
+        </addColumn>
     </changeSet>
 
 </databaseChangeLog>
