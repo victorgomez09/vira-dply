@@ -13,16 +13,18 @@ import com.vira.dply.enums.Role;
 
 @Repository
 public interface UserTeamRoleRepository
-        extends JpaRepository<UserTeamRoleEntity, UUID> {
+                extends JpaRepository<UserTeamRoleEntity, UUID> {
 
-    Optional<UserTeamRoleEntity> findByUser_IdAndTeam_Id(
-            UUID userId,
-            UUID teamId);
+        Optional<UserTeamRoleEntity> findByUser_IdAndTeam_Id(
+                        UUID userId,
+                        UUID teamId);
 
-    boolean existsByUser_IdAndTeam_IdAndRoleIn(
-            UUID userId,
-            UUID teamId,
-            Iterable<Role> roles);
+        boolean existsByUser_IdAndTeam_IdAndRoleIn(
+                        UUID userId,
+                        UUID teamId,
+                        Iterable<Role> roles);
+
+        boolean existsByUserIdAndTeam_Environment_Id(UUID userId, UUID environmentId);
 
         List<UserTeamRoleEntity> findByTeam(TeamEntity team);
 

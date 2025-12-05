@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.25.xsd">
+
+    <changeSet id="010-create-applications" author="paas">
+        <createTable tableName="applications">
+            <column name="id" type="uuid">
+                <constraints primaryKey="true" nullable="false" />
+            </column>
+
+            <column name="project_id" type="uuid">
+                <constraints nullable="false" foreignKeyName="fk_application_project"
+                    references="projects(id)" />
+            </column>
+
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="description" type="varchar(255)" />
+
+            <column name="git_repository" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="git_branch" type="varchar(100)" defaultValue="main" />
+
+            <column name="type" type="varchar(50)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="replicas" type="int" defaultValueNumeric="1" />
+
+            <column name="auto_scalable" type="boolean" defaultValueBoolean="false" />
+
+            <column name="created_at" type="timestamp" />
+        </createTable>
+
+        <addUniqueConstraint
+            tableName="applications"
+            columnNames="project_id,name"
+            constraintName="uk_application_project_name" />
+    </changeSet>
+
+</databaseChangeLog>
