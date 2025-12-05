@@ -1,6 +1,7 @@
 package com.vira.dply.entity;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -9,6 +10,7 @@ import com.vira.dply.enums.ApplicationStatus;
 import com.vira.dply.enums.ApplicationType;
 import com.vira.dply.enums.BuildStatus;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,6 +20,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
@@ -77,6 +80,9 @@ public class ApplicationEntity {
     private String buildLogs;
 
     private boolean autoScalable = false;
+
+    @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<DomainEntity> domains;
 
     @CreationTimestamp
     private Instant createdAt = Instant.now();

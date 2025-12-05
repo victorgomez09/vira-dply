@@ -60,4 +60,10 @@
         </addColumn>
     </changeSet>
 
+    <changeSet id="005-4-add-application-build-status" author="paas">
+        <addColumn tableName="applications">
+            <column name="build_status" type="varchar(50)" />
+        </addColumn>
+    </changeSet>
+
 </databaseChangeLog>

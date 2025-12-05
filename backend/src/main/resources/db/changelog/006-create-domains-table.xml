@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog 
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+       http://www.liquibase.org/xml/ns/dbchangelog
+       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="006-1-create-domains" author="paas-dev">
+        <createTable tableName="domains">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="host" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="port" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="tls" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="application_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Foreign key a ApplicationEntity -->
+        <addForeignKeyConstraint 
+            baseTableName="domains"
+            baseColumnNames="application_id"
+            referencedTableName="applications"
+            referencedColumnNames="id"
+            constraintName="fk_domain_application"
+            onDelete="CASCADE"/>
+    </changeSet>
+
+        <changeSet id="006-2-add-domain-gateway-type" author="paas">
+        <addColumn tableName="domains">
+            <column name="gateway_type" type="varchar(50)" />
+        </addColumn>
+    </changeSet>
+
+</databaseChangeLog>
