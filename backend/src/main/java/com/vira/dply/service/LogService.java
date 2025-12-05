@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
+import com.vira.dply.enums.WebsocketLogType;
 import com.vira.dply.websocket.LogsWebSocketHandler;
 
 import io.fabric8.kubernetes.api.model.Container;
@@ -21,10 +22,10 @@ public class LogService {
 
     private final LogsWebSocketHandler logsWebSocketHandler;
 
-    public void streamLogs(String deployId, String namespace, String podName, KubernetesClient client) {
+    public void streamLogs(String deployId, String namespace, String podName, WebsocketLogType type, KubernetesClient client) {
         Pod pod = client.pods().inNamespace(namespace).withName(podName).get();
         if (pod == null) {
-            logsWebSocketHandler.sendLog(deployId, "Pod not found: " + podName);
+            logsWebSocketHandler.sendLog(deployId, "Pod not found: " + podName, type);
             return;
         }
 
@@ -43,11 +44,11 @@ public class LogService {
                     String line;
                     while (!logsWebSocketHandler.isCancelled(deployId) && (line = reader.readLine()) != null) {
                         // Diferenciamos contenedor y tipo de log
-                        logsWebSocketHandler.sendLog(deployId, "[" + containerName + "] " + line);
+                        logsWebSocketHandler.sendLog(deployId, "[" + containerName + "] " + line, type);
                     }
 
                 } catch (IOException e) {
-                    logsWebSocketHandler.sendLog(deployId, "[" + containerName + "] Error: " + e.getMessage());
+                    logsWebSocketHandler.sendLog(deployId, "[" + containerName + "] Error: " + e.getMessage(), type);
                 }
             }).start();
         }

@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 
 import com.vira.dply.entity.ApplicationEntity;
 import com.vira.dply.enums.BuildStatus;
+import com.vira.dply.enums.WebsocketLogType;
 import com.vira.dply.repository.ApplicationRepository;
 import com.vira.dply.util.BuildResult;
+import com.vira.dply.websocket.LogsWebSocketHandler;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
@@ -25,22 +27,30 @@ public class AsyncDeploymentProcessor {
     private final GitService gitService;
     private final BuildService buildService;
     private final DeploymentService deploymentService;
+    private final LogsWebSocketHandler logsWebSocketHandler;
 
     @Async
     @Transactional
     public void buildAndDeployApplication(UUID applicationId) {
-        ApplicationEntity app = applicationRepository.findById(applicationId).orElseThrow(() -> new EntityNotFoundException("Application not found"));
+        ApplicationEntity app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new EntityNotFoundException("Application not found"));
+
+        String deployId = UUID.randomUUID().toString();
 
         try {
-            // 1️⃣ Clonar repo
-            Path repoPath = gitService.cloneRepo(app.getGitRepository(), app.getGitBranch(), null);
-            
+            // 1️⃣ Clonar repo con streaming de logs
+            logsWebSocketHandler.sendLog(deployId, "Starting Git clone...", WebsocketLogType.DEPLOY);
+            Path repoPath = gitService.cloneRepo(deployId, app.getGitRepository(), app.getGitBranch(), null);
+            logsWebSocketHandler.sendLog(deployId, "Git clone completed.", WebsocketLogType.DEPLOY);
+
             // 2️⃣ Actualizar estado
             app.setBuildStatus(BuildStatus.BUILDING);
             applicationRepository.save(app);
 
-            // 3️⃣ Ejecutar build con Nixpacks
+            // 3️⃣ Ejecutar build con streaming de logs
+            logsWebSocketHandler.sendLog(deployId, "Starting build...", WebsocketLogType.DEPLOY);
             CompletableFuture<BuildResult> buildFuture = buildService.buildApplicationAsync(
+                    deployId,
                     repoPath.toString(),
                     app.getName(),
                     Duration.ofMinutes(5)
@@ -54,12 +64,16 @@ public class AsyncDeploymentProcessor {
 
                 // 4️⃣ Si build exitoso, desplegar en Kubernetes
                 if (result.getStatus() == BuildStatus.SUCCESS) {
-                    deploymentService.deployApplication(app, result.getImageTag());
+                    logsWebSocketHandler.sendLog(deployId, "Build successful. Deploying application...", WebsocketLogType.DEPLOY);
+                    deploymentService.deployApplication(deployId, app, result.getImageTag());
+                } else {
+                    logsWebSocketHandler.sendLog(deployId, "Build failed. Deployment skipped.", WebsocketLogType.DEPLOY);
                 }
             }).exceptionally(ex -> {
                 app.setBuildStatus(BuildStatus.FAILED);
                 app.setBuildLogs(ex.getMessage());
                 applicationRepository.save(app);
+                logsWebSocketHandler.sendLog(deployId, "Build failed: " + ex.getMessage(), WebsocketLogType.DEPLOY);
                 return null;
             });
 
@@ -67,6 +81,7 @@ public class AsyncDeploymentProcessor {
             app.setBuildStatus(BuildStatus.FAILED);
             app.setBuildLogs(e.getMessage());
             applicationRepository.save(app);
+            logsWebSocketHandler.sendLog(deployId, "Error during deployment process: " + e.getMessage(), WebsocketLogType.DEPLOY);
         }
     }
 }

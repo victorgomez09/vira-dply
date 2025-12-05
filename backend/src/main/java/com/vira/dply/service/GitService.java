@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import com.vira.dply.exception.GitOperationException;
 import com.vira.dply.util.GitCredentials;
 import com.vira.dply.util.InMemoryKeyLoader;
+import com.vira.dply.util.WebSocketProgressMonitor;
+import com.vira.dply.websocket.LogsWebSocketHandler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,8 +33,10 @@ public class GitService {
     private static final Path BASE_DIR = Path.of("/tmp/paas/git");
 
     private final InMemoryKeyLoader inMemoryKeyLoader;
+    private final LogsWebSocketHandler logsWebSocketHandler;
 
     public Path cloneRepo(
+            String deployId,
             String repositoryUrl,
             String branch,
             GitCredentials credentials) {
@@ -45,6 +49,7 @@ public class GitService {
                     .setBranch(branch)
                     .setDirectory(targetDir.toFile())
                     .setCloneAllBranches(false)
+                    .setProgressMonitor(new WebSocketProgressMonitor(deployId, logsWebSocketHandler))
                     .setDepth(1);
 
             if (repositoryUrl.startsWith("http")) {

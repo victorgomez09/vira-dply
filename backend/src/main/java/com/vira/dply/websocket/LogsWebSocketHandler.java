@@ -11,6 +11,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.vira.dply.enums.WebsocketLogType;
+
 @Component
 public class LogsWebSocketHandler extends TextWebSocketHandler {
 
@@ -29,16 +31,17 @@ public class LogsWebSocketHandler extends TextWebSocketHandler {
         String deployId = session.getUri().getQuery();
         sessions.remove(deployId);
         cancelFlags.computeIfPresent(deployId, (k, v) -> {
-            v.set(true); // marca cancelación
+            v.set(true);
             return null;
         });
     }
 
-    public void sendLog(String deployId, String logLine) {
+    public void sendLog(String deployId, String logLine, WebsocketLogType type) {
+        // type = "DEPLOY" o "APP"
         WebSocketSession session = sessions.get(deployId);
         if (session != null && session.isOpen()) {
             try {
-                session.sendMessage(new TextMessage(logLine));
+                session.sendMessage(new TextMessage(type + "|" + logLine));
             } catch (IOException e) {
                 e.printStackTrace();
             }

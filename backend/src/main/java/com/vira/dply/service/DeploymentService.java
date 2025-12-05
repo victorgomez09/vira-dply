@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import com.vira.dply.entity.ApplicationEntity;
 import com.vira.dply.entity.DomainEntity;
 import com.vira.dply.enums.GatewayType;
+import com.vira.dply.enums.WebsocketLogType;
 import com.vira.dply.util.KubernetesClientProvider;
 import com.vira.dply.websocket.LogsWebSocketHandler;
 
@@ -37,13 +38,11 @@ public class DeploymentService {
         private final LogsWebSocketHandler logsWebSocketHandler;
         private final LogService logService;
 
-        public String deployApplication(ApplicationEntity app, String imageTag) {
-                String deployId = UUID.randomUUID().toString();
-
+        public String deployApplication(String deployId, ApplicationEntity app, String imageTag) {
                 // Ejecutamos deploy de forma asíncrona
                 CompletableFuture.runAsync(() -> {
                         try {
-                                logsWebSocketHandler.sendLog(deployId, "Starting deployment of " + app.getName());
+                                logsWebSocketHandler.sendLog(deployId, "Starting deployment of " + app.getName(), WebsocketLogType.DEPLOY);
 
                                 String namespace = app.getProject().getEnvironment().getName();
                                 Set<DomainEntity> domains = app.getDomains();
@@ -84,7 +83,7 @@ public class DeploymentService {
                                 KubernetesClient client = kubernetesClientProvider
                                                 .getClientForEnvironment(app.getProject().getEnvironment());
                                 client.apps().deployments().inNamespace(namespace).createOrReplace(deployment);
-                                logsWebSocketHandler.sendLog(deployId, "Deployment created.");
+                                logsWebSocketHandler.sendLog(deployId, "Deployment created.", WebsocketLogType.DEPLOY);
 
                                 log.info("Deployment created for app {}", app.getName());
 
@@ -95,12 +94,12 @@ public class DeploymentService {
                                 }
 
                                 String podName = waitForPodReady(namespace, app.getName(), client);
-                                logsWebSocketHandler.sendLog(deployId, "Streaming logs from pod: " + podName);
-                                logService.streamLogs(deployId, namespace, podName, client);
+                                logsWebSocketHandler.sendLog(deployId, "Streaming logs from pod: " + podName, WebsocketLogType.DEPLOY);
+                                logService.streamLogs(deployId, namespace, podName, WebsocketLogType.APP, client);
 
-                                logsWebSocketHandler.sendLog(deployId, "Deployment completed.");
+                                logsWebSocketHandler.sendLog(deployId, "Deployment completed.", WebsocketLogType.DEPLOY);
                         } catch (Exception e) {
-                                logsWebSocketHandler.sendLog(deployId, "Error: " + e.getMessage());
+                                logsWebSocketHandler.sendLog(deployId, "Error: " + e.getMessage(), WebsocketLogType.DEPLOY);
                                 e.printStackTrace();
                         }
                 });
