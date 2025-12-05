@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.vira.dply.dto.AuthDto;
+import com.vira.dply.dto.TokenDto;
 import com.vira.dply.service.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody AuthDto payload) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.login(payload.getEmail(), payload.getPassword()));
+    public ResponseEntity<TokenDto> login(@RequestBody AuthDto payload) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(new TokenDto(authService.login(payload.getEmail(), payload.getPassword())));
     }
 }

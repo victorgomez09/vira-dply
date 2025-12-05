@@ -35,9 +35,10 @@ export class LoginComponent {
 
   onSubmit() {
     if (this.loginForm.invalid) return;
+
     this.authService.login(this.loginForm.value).subscribe({
       next: () => this.router.navigate(['/environments']),
-      error: err => this.messageService.add({ severity: 'error', summary: 'Login Failed', detail: err.error.message })
+      error: err => this.messageService.add({ severity: 'error', summary: 'Login Failed', detail: err.error?.message })
     });
   }
 

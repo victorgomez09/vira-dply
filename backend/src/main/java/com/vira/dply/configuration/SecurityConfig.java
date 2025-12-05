@@ -14,9 +14,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.vira.dply.security.JwtAuthenticationFilter;
 import com.vira.dply.service.JwtService;
 
+import lombok.RequiredArgsConstructor;
+
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CorsConfig corsConfig;
 
     @Bean
     public JwtService jwtService(
@@ -32,6 +37,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(c -> c.configurationSource(corsConfig))
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class)

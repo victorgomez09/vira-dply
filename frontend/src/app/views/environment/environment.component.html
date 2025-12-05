@@ -1,7 +1,38 @@
 <p-card header="Environments">
   <p-button label="Crear Environment" icon="pi pi-plus" (click)="createEnvironment()"></p-button>
 
-  <p-table [value]="environments()" [loading]="loading" [paginator]="true" [rows]="10" [responsiveLayout]="'scroll'">
+  @defer(when environments()) {
+      <p-tabs value="0" scrollable [value]="selectedEnvironment.name">
+        <p-tablist>
+          <ng-template #previcon>
+            <i class="pi pi-minus"></i>
+          </ng-template>
+          @for (environment of environments(); track $index) {
+          <p-tab [value]="environment.name" class="flex items-center !gap-2">
+            <span class="font-bold whitespace-nowrap">{{environment.name}}</span>
+          </p-tab>
+        }
+          <ng-template #nexticon>
+            <i class="pi pi-plus"></i>
+          </ng-template>
+        </p-tablist>
+        <p-tabpanels>
+          @for (environment of environments(); track $index) {
+            <p-tabpanel [value]="environment.name">
+              <p class="m-0">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+                dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex
+                ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat
+                nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+                anim id est laborum.
+              </p>
+            </p-tabpanel>
+          }
+        </p-tabpanels>
+      </p-tabs>
+  }
+
+  <!-- <p-table [value]="environments()" [loading]="loading" [paginator]="true" [rows]="10" [responsiveLayout]="'scroll'">
     <ng-template pTemplate="header">
       <tr>
         <th>Name</th>
@@ -20,5 +51,5 @@
         </td>
       </tr>
     </ng-template>
-  </p-table>
+  </p-table> -->
 </p-card>

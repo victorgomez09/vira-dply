@@ -11,17 +11,19 @@ export interface AuthResponse {
 }
 
 @Injectable({
-  providedIn: 'root' // sigue siendo singleton
+  providedIn: 'root'
 })
 export class AuthService {
-  private api = `${environment.API_URL}/api/auth`;
+  private api = `${environment.API_URL}/auth`;
 
   constructor(private http: HttpClient) { }
 
   login(credentials: { username: string; password: string }): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/login`, credentials)
       .pipe(
-        tap(res => localStorage.setItem('token', res.token))
+        tap(res => {
+          localStorage.setItem('token', res.token)
+        })
       );
   }
 
