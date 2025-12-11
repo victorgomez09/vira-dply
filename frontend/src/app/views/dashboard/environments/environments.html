@@ -1,0 +1,22 @@
+<div class="flex flex-1 flex-col p-2 w-full h-full">
+    
+    <div class="flex items-center justify-between">
+        <div class="flex flex-col">
+            <h2>Environments</h2>
+            <p>Each environment is isolated from others.</p>
+        </div>
+
+        <div>
+            <button class="btn btn-primary">Add environment</button>
+        </div>
+    </div>
+
+    <div class="tabs tabs-lift">
+        @for (environment of environments$(); track $index) {
+            <input type="radio" [name]="environment.name" class="tab" [attr.aria-label]="environment.name" />
+            <div class="tab-content bg-base-100 border-base-300 p-6">Tab content 1</div>
+        }
+    </div>
+
+    {{environments$() | json}}
+</div>

@@ -12,5 +12,5 @@ import lombok.RequiredArgsConstructor;
 public class TeamDto {
     private UUID id;
     private String name;
-    private EnvironmentDto environment;
+    // private EnvironmentDto environment;
 }

@@ -1,0 +1,38 @@
+<div class="hero bg-base-200 min-h-screen">
+  <div class="hero-content flex-col lg:flex-row-reverse">
+    <div class="text-center lg:text-left">
+      <h1 class="text-5xl font-bold">Login now!</h1>
+      <p class="py-6">
+        Self-hosted lightweight PaaS solution to deploy and manage your applications on any VPS.
+      </p>
+    </div>
+    <div class="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl">
+      <div class="card-body">
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <fieldset class="fieldset">
+                <label class="label">Email</label>
+                <input type="email" class="input" placeholder="Email" formControlName="email" [ngClass]="{'input-error': f['email'].touched && f['email'].invalid}" />
+                @if (f['email'].touched && f['email'].invalid) {
+                    @if (f['email'].errors?.['required']){
+                        <p class="label italic text-error">Email is required</p>
+                    }
+                    @if (f['email'].errors?.['email']) {
+                        <p class="label italic text-error">Email is not valid</p>
+                    }
+                }
+                
+                <label class="label">Password</label>
+                <input type="password" class="input" placeholder="Password" formControlName="password" [ngClass]="{'input-error': f['password'].touched && f['password'].invalid}" />
+                @if (f['password'].touched && f['password'].invalid) {
+                    @if (f['password'].errors?.['required']){
+                        <p class="label italic text-error">Password is required</p>
+                    }
+                }
+
+                <button class="btn btn-neutral mt-4" [disabled]="!loginForm.valid" type="submit">Login</button>
+            </fieldset>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

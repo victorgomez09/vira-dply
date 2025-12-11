@@ -1,5 +1,6 @@
 package com.vira.dply.dto;
 
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -14,5 +15,5 @@ public class EnvironmentDto {
     private String name;
     private String kubeContext;
     private String kubeConfigPath;
-    // private Set<TeamEntity> teams = new HashSet<>();
+    private List<TeamDto> teams;
 }

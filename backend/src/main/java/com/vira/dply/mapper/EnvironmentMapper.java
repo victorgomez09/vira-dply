@@ -5,7 +5,7 @@ import org.mapstruct.Mapper;
 import com.vira.dply.dto.EnvironmentDto;
 import com.vira.dply.entity.EnvironmentEntity;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses= {TeamMapper.class})
 public interface EnvironmentMapper {
 
     EnvironmentDto toDto(EnvironmentEntity entity);

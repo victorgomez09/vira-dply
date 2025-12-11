@@ -1,7 +1,6 @@
 package com.vira.dply.entity;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import com.vira.dply.enums.EnvironmentStatus;
@@ -47,5 +46,5 @@ public class EnvironmentEntity {
     private String kubeConfigPath;
 
     @OneToMany(mappedBy = "environment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<TeamEntity> teams = new HashSet<>();
+    private List<TeamEntity> teams;
 }
